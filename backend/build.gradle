@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+    id 'groovy'
+}
+
+group = 'com.vivahgo'
+version = '1.0-SNAPSHOT'
+sourceCompatibility = '21'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // SparkJava for MCP endpoint routing
+    implementation 'com.sparkjava:spark-core:2.9.4'
+
+    // jOOQ for PostgreSQL access
+    implementation 'org.jooq:jooq:3.19.0'
+
+    // Redis client (Jedis or Lettuce)
+    implementation 'redis.clients:jedis:5.0.0'
+
+    // MCP Java SDK
+    // implementation 'com.anthropic:mcp-java-sdk:...' // Placeholder
+
+    // Spock framework for testing
+    testImplementation platform('org.apache.groovy:groovy-bom:4.0.13')
+    testImplementation 'org.apache.groovy:groovy'
+    testImplementation 'org.spockframework:spock-core:2.4-M1-groovy-4.0'
+}
+
+test {
+    useJUnitPlatform()
+}

@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: vivahgo
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: vivahgo_db
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "4567:4567"
+    depends_on:
+      - postgres
+      - redis
+
+  agent:
+    build:
+      context: ../agent
+      # Needs an agent Dockerfile
+    depends_on:
+      - backend

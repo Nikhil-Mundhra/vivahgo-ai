@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "vivahgo-agent"
+version = "0.1.0"
+description = "AI Agent layer for VivahGo using LangGraph and MCP Client"
+authors = ["VivahGo"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+langchain = "^0.1.0"
+langgraph = "^0.0.26"
+# Placeholder for MCP Python client SDK
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
