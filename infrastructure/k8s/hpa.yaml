@@ -1,0 +1,9 @@
+# Placeholder for Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: vivahgo-backend-hpa
+spec:
+  # Targets CPU utilization to absorb parallel AI workload bursts
+  minReplicas: 3
+  maxReplicas: 10

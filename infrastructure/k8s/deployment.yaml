@@ -1,0 +1,8 @@
+# Placeholder for Kubernetes Deployment manifest
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vivahgo-backend
+spec:
+  replicas: 3
+  # ... template spec
