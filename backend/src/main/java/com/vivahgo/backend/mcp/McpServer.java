@@ -16,6 +16,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import spark.Spark;
 
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -157,6 +158,8 @@ public class McpServer {
     }
 
     public void start() {
+        String bindAddress = System.getenv().getOrDefault("HOST", "::");
+        Spark.ipAddress(bindAddress);
         Spark.port(port);
 
         // CORS filter
@@ -336,16 +339,44 @@ public class McpServer {
         return mapper.writeValueAsString(response);
     }
 
+    static JedisPool createJedisPool(Map<String, String> env) {
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        String redisUrl = env.get("REDIS_URL");
+        if (redisUrl != null && !redisUrl.isBlank()) {
+            log.info("Initializing Redis connection pool from REDIS_URL");
+            return new JedisPool(poolConfig, URI.create(redisUrl.trim()));
+        }
+
+        String redisHost = env.getOrDefault("REDIS_HOST", "localhost");
+        int redisPort = Integer.parseInt(env.getOrDefault("REDIS_PORT", "6379"));
+        String redisPassword = env.get("REDIS_PASSWORD");
+        if (redisPassword != null && !redisPassword.isBlank()) {
+            log.info("Initializing Redis connection pool: host={}, port={} (authenticated)", redisHost, redisPort);
+            return new JedisPool(poolConfig, redisHost, redisPort, 5000, redisPassword);
+        }
+
+        log.info("Initializing Redis connection pool: host={}, port={}", redisHost, redisPort);
+        return new JedisPool(poolConfig, redisHost, redisPort);
+    }
+
     public static void main(String[] args) {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "4567"));
-        String redisHost = System.getenv().getOrDefault("REDIS_HOST", "localhost");
-        int redisPort = Integer.parseInt(System.getenv().getOrDefault("REDIS_PORT", "6379"));
 
-        JedisPool jedisPool = new JedisPool(new JedisPoolConfig(), redisHost, redisPort);
+        JedisPool jedisPool = createJedisPool(System.getenv());
         RedisLockManager lockManager = new RedisLockManager(jedisPool);
 
+        // Run DDL against DIRECT_DATABASE_URL (non-pooled) when configured (e.g., Neon Postgres)
+        Optional<DatabaseConfig> directConfig = DatabaseConfig.fromDirectEnv();
+        if (directConfig.isPresent()) {
+            try (DatabaseConfig migrationDb = directConfig.get()) {
+                migrationDb.initSchema();
+            }
+        }
+
         DatabaseConfig dbConfig = DatabaseConfig.fromEnv();
-        dbConfig.initSchema();
+        if (directConfig.isEmpty()) {
+            dbConfig.initSchema();
+        }
         ReservationRepository repo = new ReservationRepository(dbConfig.dsl());
 
         ObjectMapper mapper = new ObjectMapper();
