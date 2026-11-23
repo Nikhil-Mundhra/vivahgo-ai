@@ -30,9 +30,15 @@ class LockConflictError(Exception):
 
 
 class VivahGoMcpClient:
-    def __init__(self, endpoint: str = "http://localhost:4567/mcp"):
+    def __init__(
+        self,
+        endpoint: str = "http://localhost:4567/mcp",
+        api_key: Optional[str] = None,
+        timeout: float = 65.0,
+    ):
         self.endpoint = endpoint
-        self._client = httpx.Client(timeout=15.0)
+        headers = {"Authorization": f"Bearer {api_key.strip()}"} if api_key and api_key.strip() else {}
+        self._client = httpx.Client(timeout=timeout, headers=headers)
 
     def list_tools(self) -> List[Dict[str, Any]]:
         """Queries the Java MCP server for all registered tools."""

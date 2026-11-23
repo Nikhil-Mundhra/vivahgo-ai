@@ -23,7 +23,13 @@ app.add_middleware(
 )
 
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:4567/mcp")
-mcp_client = VivahGoMcpClient(endpoint=MCP_SERVER_URL)
+MCP_API_KEY = os.getenv("MCP_API_KEY")
+MCP_TIMEOUT_SECONDS = float(os.getenv("MCP_TIMEOUT_SECONDS", "65"))
+mcp_client = VivahGoMcpClient(
+    endpoint=MCP_SERVER_URL,
+    api_key=MCP_API_KEY,
+    timeout=MCP_TIMEOUT_SECONDS,
+)
 orchestrator = create_orchestrator(mcp_client)
 
 

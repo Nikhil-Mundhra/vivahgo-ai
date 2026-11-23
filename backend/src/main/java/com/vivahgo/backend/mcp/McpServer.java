@@ -178,8 +178,17 @@ public class McpServer {
         });
 
         // MCP JSON-RPC 2.0 Endpoint
+        String requiredApiKey = System.getenv("MCP_API_KEY");
         Spark.post("/mcp", (req, res) -> {
             res.type("application/json");
+            if (requiredApiKey != null && !requiredApiKey.isBlank()) {
+                String authHeader = req.headers("Authorization");
+                String expected = "Bearer " + requiredApiKey.trim();
+                if (!expected.equals(authHeader)) {
+                    res.status(401);
+                    return "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Unauthorized\"}}";
+                }
+            }
             // Execute on Java 21 Virtual Threads
             return CompletableFuture.supplyAsync(() -> handleJsonRpc(req.body()), virtualThreadExecutor).get();
         });

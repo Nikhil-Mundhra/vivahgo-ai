@@ -1,0 +1,68 @@
+# Render Blueprint for VivahGo-AI (Singapore region — co-located with Neon aws-ap-southeast-1)
+# Deploy via: https://dashboard.render.com/blueprint/new?repo=https://github.com/Nikhil-Mundhra/vivahgo-ai
+
+envVarGroups:
+  - name: vivahgo-ai-shared
+    envVars:
+      - key: MCP_API_KEY
+        generateValue: true
+
+services:
+  # 1. Managed Key Value (Redis-compatible) for 15-minute atomic vendor holds
+  - type: keyvalue
+    name: vivahgo-ai-redis
+    region: singapore
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: [] # Private Render network only
+
+  # 2. Java 21 / SparkJava / jOOQ MCP Server -> Neon Postgres + Render Key Value
+  - type: web
+    name: vivahgo-ai-backend
+    runtime: docker
+    region: singapore
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: vivahgo-ai-shared
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: JAVA_TOOL_OPTIONS
+        value: "-Xmx320m -Xms128m"
+      - key: DATABASE_URL
+        sync: false # Paste Neon pooled (-pooler) DATABASE_URL from vivahgo-ai/.env
+      - key: DIRECT_DATABASE_URL
+        sync: false # Paste Neon direct DIRECT_DATABASE_URL from vivahgo-ai/.env
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: vivahgo-ai-redis
+          property: connectionString
+
+  # 3. Python 3.11 / FastAPI / LangGraph AI Orchestrator
+  - type: web
+    name: vivahgo-ai-agent
+    runtime: docker
+    region: singapore
+    plan: free
+    rootDir: agent
+    dockerfilePath: ./agent/Dockerfile
+    dockerContext: ./agent
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: vivahgo-ai-shared
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: MCP_TIMEOUT_SECONDS
+        value: "65"
+      # Free Render web services cannot receive private-network traffic from other services,
+      # so the agent calls the backend over HTTPS authenticated with the shared MCP_API_KEY.
+      - key: MCP_SERVER_URL
+        value: https://vivahgo-ai-backend.onrender.com/mcp
